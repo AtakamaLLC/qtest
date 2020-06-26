@@ -22,6 +22,5 @@
     "url": "https://github.com/AtakamaLLC/qtest/issues"
   },
   "homepage": "https://github.com/AtakamaLLC/qtest#readme",
-  "dependencies": {
-  }
+  "dependencies": {}
 }
