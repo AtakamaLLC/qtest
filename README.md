@@ -1,15 +1,15 @@
-#qtest
+# qtest
 
 Simple test runner for nodejs.
 
-###Install:
+### Install:
 
 ```
 npm install qtest
 ```
 
 
-###Use:
+### Use:
 
 ```js
 test = require('qtest')
@@ -31,7 +31,7 @@ test.beforeAll = async (ctx) => {
 test.run()
 ```
 
-###Coverage:
+### Coverage:
 
 ```
 npm install nyc
@@ -39,7 +39,7 @@ node_modules/.bin/nyc node test.js
 ```
 
 
-###Other features:
+### Other features:
 
  - cli options 
    - -t \<test-name\> : pick a test to run
