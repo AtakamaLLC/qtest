@@ -1,0 +1,8 @@
+language: node_js
+
+script:
+  - node_modules/.bin/nyc --reporter lcov --reporter text-summary npm test
+  - codecov
+
+install:
+  - npm install nyc

@@ -1,0 +1,27 @@
+{
+  "name": "qtest",
+  "version": "1.0.0",
+  "description": "quick and simple test runner for nodejs (alternative to jest)",
+  "main": "qtest.js",
+  "scripts": {
+    "test": "NODE_PATH=. node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AtakamaLLC/qtest.git"
+  },
+  "keywords": [
+    "test",
+    "jest",
+    "runner",
+    "unit"
+  ],
+  "author": "Erik Aronesty",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AtakamaLLC/qtest/issues"
+  },
+  "homepage": "https://github.com/AtakamaLLC/qtest#readme",
+  "dependencies": {
+  }
+}
