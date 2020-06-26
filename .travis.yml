@@ -5,5 +5,5 @@ script:
   - codecov
 
 install:
-  - npm insall -g npm
+  - npm install -g npm
   - npm install -g nyc
