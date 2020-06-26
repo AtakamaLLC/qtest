@@ -12,7 +12,7 @@ npm install qtest
 ### Use:
 
 ```js
-test = require('qtest')
+test = require('@atakama/qtest')
 assert = require('assert')
 
 test.add("test name", async (ctx)=>{
