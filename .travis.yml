@@ -7,5 +7,5 @@ script:
   - codecov
 
 install:
-  - npm install -g npm
+  - npm install -g codecov
   - npm install -g nyc
