@@ -82,7 +82,7 @@ class QTest {
             err = e
             ok = false
             if (this.translateError) {
-                err = this.translateError(err)
+                err = await this.translateError(err)
             }
             console.log(this.color("red", "FAIL: "), t.name, "# ", err)
             for (let ent of logLines) {

@@ -62,4 +62,23 @@ test.add("parallel", async (ctx)=>{
     }
 }, {parallel: [true, false]})
 
+
+test.add("translateError", async (ctx)=>{
+    let my = test.runner()
+   
+    my.translateError = async (err) => {
+       return "translated"
+    }
+
+    my.add("t1", async (ctx) => {
+        assert.equal(0,1)
+    })
+    
+    results = await my.run()
+    
+    ctx.log(JSON.stringify(results))
+
+    assert.equal(results.tests.t1.err, "translated")
+})
+
 test.run()
