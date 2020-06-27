@@ -8,7 +8,7 @@ Simple test runner for nodejs.
 ### Install:
 
 ```
-npm install qtest
+npm install @atakama/qtest
 ```
 
 
