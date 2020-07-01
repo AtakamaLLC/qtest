@@ -287,6 +287,7 @@ class QTest {
 
     scope(...args) {
         let ret = this.runner(...args)
+        ret.argparse = this.argparse
         this._scopes.push(ret)
         return ret
     }
