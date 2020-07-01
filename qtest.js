@@ -22,7 +22,9 @@
  */
 
 class QTest {
-    constructor() {
+    constructor(name) {
+        this.name = name
+        this._scopes = []
         this._tests = []
         this._color = {
             "reset" : "\x1b[0m",
@@ -141,6 +143,7 @@ class QTest {
 
     async _run(tl, opts) {
         let ctx = {
+            name: this.name,
             passed: 0,
             failed: 0,
             tests: {},
@@ -198,6 +201,10 @@ class QTest {
          *  }
          */
 
+        if (this.name) {
+            console.log("=====", this.name, "=====")
+        }
+
         let tl = []
         let opts = {
             parallel: true,
@@ -228,6 +235,14 @@ class QTest {
         if (this.afterAll) 
             await this.afterAll(opts)
 
+        res.scopes = []
+        for (let scope of this._scopes) {
+            let sub = await scope.run()
+            res.scopes.push(sub)
+            res.passed += sub.passed
+            res.failed += sub.failed
+        }
+
         return res
     }
 
@@ -238,6 +253,12 @@ class QTest {
     runner(...args) {
         let ret = new QTest(...args)
         ret.argparse = false
+        return ret
+    }
+
+    scope(...args) {
+        let ret = this.runner(...args)
+        this._scopes.push(ret)
         return ret
     }
 }

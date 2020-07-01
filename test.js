@@ -36,6 +36,29 @@ test.add("param", async (ctx)=>{
     assert.ok(results.tests["t1:param=false"].err)
 })
 
+test.add("scoped", async (ctx)=>{
+    let my = test.runner()
+  
+    my.before = (ctx) => {ctx.x = 1}
+    my.add("t1", async (ctx) => {
+        assert.equal(ctx.x, 1)
+    })
+
+    sub = my.scope("module")
+    
+    sub.add("t2", async (ctx) => {
+        assert.strictEqual(ctx.x, undefined)
+    })
+    
+    results = await my.run()
+    
+    ctx.log(JSON.stringify(results))
+
+    assert.equal(results.passed, 2)
+    assert.equal(results.tests["t1"].ok, true)
+    assert.equal(results.scopes[0].tests["t2"].ok, true)
+    assert.equal(results.scopes[0].name, "module")
+})
 
 test.add("parallel", async (ctx)=>{
     let my = test.runner()
