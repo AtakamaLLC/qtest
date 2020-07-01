@@ -56,3 +56,22 @@ node_modules/.bin/nyc node test.js
  - t = test.scope("name")
    - creates a new, scoped test collection
    - will get run if the parent is run
+
+
+### Babel:
+ Example package.json using babel and coverage:
+
+ ```json
+  "scripts": {
+    "test": "babel-node --ignore nothing test.js",
+    "coverage": "nyc npm run test"
+  },
+  "nyc": {
+    "require": [
+      "@babel/register"
+    ],
+    "reporter": [
+      "lcov",
+      "text"
+    ]
+ ```
