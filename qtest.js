@@ -24,11 +24,14 @@
 class QTest {
     constructor(name) {
         this.name = name
+        this.level = 0
         this._scopes = []
         this._tests = []
+        this._skip = []
         this._color = {
             "reset" : "\x1b[0m",
             "green" : "\x1b[32m",
+            "yellow" : "\x1b[33m",
             "red": "\x1b[31m",
         }
         this.opts = {}
@@ -60,7 +63,11 @@ class QTest {
         this._tests.push({name: name, func: func, params: params})
     }
     
-    async _run_test(t, opts, ctx) {
+    skip(name, func, params) {
+        this._skip.push({name: name, func: func, params: params})
+    }
+    
+    async _run_test(t, opts, res) {
         let ok
         let logLines = []
         let local = {...opts}
@@ -78,7 +85,7 @@ class QTest {
             if (this.before) 
                 await this.before(local)
             await t.func(local)
-            console.log(this.color("green", "OK: "), t.name)
+            console.log(this.color("green", this._levelPrefix() + "OK: "), t.name)
             ok = true
         } catch (e) {
             err = e
@@ -86,7 +93,7 @@ class QTest {
             if (this.translateError) {
                 err = await this.translateError(err)
             }
-            console.log(this.color("red", "FAIL: "), t.name, "# ", err)
+            console.log(this.color("red", this._levelPrefix() + "FAIL: "), t.name, "# ", err)
             for (let ent of logLines) {
                 ent.unshift("   ")
                 console.log.apply(null, ent)
@@ -94,9 +101,9 @@ class QTest {
         }
         if (this.after) 
             await this.after(local)
-        if (ok) ctx.passed += 1
-        if (!ok) ctx.failed += 1
-        ctx.tests[t.name] = {
+        if (ok) res.passed += 1
+        if (!ok) res.failed += 1
+        res.tests[t.name] = {
             ok: ok,
             err: err,
             log: logLines,
@@ -141,23 +148,18 @@ class QTest {
         return base + this._paramName(param)
     }
 
-    async _run(tl, opts) {
-        let ctx = {
+    async _run(rxlist, opts) {
+        let res = {
             name: this.name,
             passed: 0,
+            skipped: 0,
             failed: 0,
             tests: {},
         }
-        let regex = new RegExp(tl.join("|"))
+        let regex = new RegExp(rxlist.join("|"))
 
         let tests = []
         for (let t of this._tests) {
-            if (tl) {
-                if (!t.name.match(regex)) {
-                    continue
-                }
-            }
-
             let params = this.combinations(t.params)
             if (params.length == 0)
                 params = [{}]
@@ -166,16 +168,29 @@ class QTest {
                 let popt = {...opts, ...p}
                 let ptest = {...t}
                 ptest.name = this.paramName(t.name, p)
-                let promise = this._run_test(ptest, popt, ctx)
+                if (rxlist) {
+                    if (!ptest.name.match(regex)) {
+                        continue
+                    }
+                }
+                let promise = this._run_test(ptest, popt, res)
                 if (!opts.parallel)
                     await promise
                 else
                     tests.push(promise)
             }
         }
+        for (let t of this._skip) {
+            console.log(this.color("yellow", this._levelPrefix() + "SKIP: "), t.name)
+            res.skipped += 1
+            res.tests[t.name] = {
+                ok: false,
+                skipped: true,
+            }
+        }
         await Promise.all(tests)
-        if (!ctx.failed) {
-            if (!ctx.passed) {
+        if (!res.failed) {
+            if (!res.passed) {
                 process.exitCode = 2
                 console.log("No tests run.")
             } else {
@@ -184,7 +199,11 @@ class QTest {
         } else {
             process.exitCode = 1
         }
-        return ctx
+        return res
+    }
+
+    _levelPrefix() {
+        return " ".repeat(this.level)
     }
 
     async run() {
@@ -202,10 +221,10 @@ class QTest {
          */
 
         if (this.name) {
-            console.log("=====", this.name, "=====")
+            console.log(">>>>", this.name)
         }
 
-        let tl = []
+        let rxlist = []
         let opts = {
             parallel: true,
             logcap: true,
@@ -216,7 +235,7 @@ class QTest {
             let argv = process.argv
             for (let i=0; i < argv.length; ++i) {
                 if (argv[i] == "-t" || argv[i] == "-test") {
-                    tl.push(argv[i+1])
+                    rxlist.push(argv[i+1])
                 }
                 if (argv[i] == "-l" || argv[i] == "-linear") {
                     opts.parallel = false
@@ -230,7 +249,7 @@ class QTest {
         if (this.beforeAll) 
             await this.beforeAll(opts)
 
-        let res = await this._run(tl, opts)
+        let res = await this._run(rxlist, opts)
         
         if (this.afterAll) 
             await this.afterAll(opts)
@@ -242,7 +261,16 @@ class QTest {
             res.passed += sub.passed
             res.failed += sub.failed
         }
-
+        if (this.level == 0) {
+            let args = [
+                "PASSED:", res.passed,
+                "FAILED:", res.failed
+            ]
+            if (res.skipped) {
+                args = args.concat(["SKIPPED:", res.skipped])
+            }
+            console.log("====", ...args)
+        }
         return res
     }
 
@@ -252,6 +280,7 @@ class QTest {
 
     runner(...args) {
         let ret = new QTest(...args)
+        ret.level = this.level + 1
         ret.argparse = false
         return ret
     }

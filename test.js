@@ -60,6 +60,27 @@ test.add("scoped", async (ctx)=>{
     assert.equal(results.scopes[0].name, "module")
 })
 
+test.add("skipped", async (ctx)=>{
+    let my = test.runner()
+  
+    my.skip("t1", async (ctx) => {
+        assert.equal(ctx.x, 1)
+    })
+
+    my.add("t2", async (ctx) => {
+        assert.strictEqual(ctx.x, undefined)
+    })
+    
+    results = await my.run()
+    
+    ctx.log(JSON.stringify(results))
+
+    assert.equal(results.passed, 1)
+    assert.equal(results.skipped, 1)
+    assert.equal(results.tests["t1"].skipped, true)
+})
+
+
 test.add("parallel", async (ctx)=>{
     let my = test.runner()
     my.opts.parallel = ctx.parallel

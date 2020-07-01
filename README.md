@@ -52,3 +52,7 @@ node_modules/.bin/nyc node test.js
    - does what you expect
  - fixtures
    - beforeAll/before/after/afterAll take objects... stuff your fixtures in there
+ - test.skip(...)
+ - t = test.scope("name")
+   - creates a new, scoped test collection
+   - will get run if the parent is run
