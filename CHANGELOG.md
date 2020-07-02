@@ -4,6 +4,7 @@
  ### Changed
    - Test fails if 'after' fails
    - Reorgnize runner options
+   - -t option works properly with scopes
 
  ### Added
    - Added changelog

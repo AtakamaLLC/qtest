@@ -143,5 +143,33 @@ test.add("failAfter", async (ctx)=>{
     assert.equal(results.tests.t1.err, "err")
 })
 
+test.add("rxopt", async (ctx)=>{
+    process.argv = ["-t", "t2"]
+
+    let my = test.runner()
+  
+    my.add("t1", async (ctx) => {
+    })
+    
+    my.add("t2", async (ctx) => {
+    })
+    
+    sub = my.scope("module")
+    
+    sub.add("t2", async (ctx) => {
+    })
+    
+    sub.add("t3", async (ctx) => {
+    })
+    
+    results = await my.run()
+    
+    ctx.log(JSON.stringify(results))
+
+    assert.equal(results.passed, 2)
+    assert.equal(results.failed, 0)
+})
+
+
 
 test.run()

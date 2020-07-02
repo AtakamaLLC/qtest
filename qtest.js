@@ -39,6 +39,28 @@ class QTest {
             parallel: true,
             logcap: true,
             maxLevel: 3,
+            rxlist: [],
+        }
+    
+        this.parseArgs()
+    }
+
+    parseArgs() {
+        let opts = this.opts
+        if (process.argv && opts.argparse) {
+            let argv = process.argv
+            process.argv = []
+            for (let i=0; i < argv.length; ++i) {
+                if (argv[i] == "-t" || argv[i] == "-test") {
+                    opts.rxlist.push(argv[i+1])
+                }
+                if (argv[i] == "-l" || argv[i] == "-linear") {
+                    opts.parallel = false
+                }
+                if (argv[i] == "-s" || argv[i] == "-stdout") {
+                    opts.logcap = false
+                }
+            }
         }
     }
 
@@ -164,7 +186,7 @@ class QTest {
         return base + this._paramName(param)
     }
 
-    async _run(rxlist, opts) {
+    async _run(opts) {
         let res = {
             name: this.name,
             passed: 0,
@@ -172,7 +194,7 @@ class QTest {
             failed: 0,
             tests: {},
         }
-        let regex = new RegExp(rxlist.join("|"))
+        let regex = new RegExp(opts.rxlist.join("|"))
 
         let tests = []
         for (let t of this._tests) {
@@ -184,7 +206,7 @@ class QTest {
                 let popt = {...opts, ...p}
                 let ptest = {...t}
                 ptest.name = this.paramName(t.name, p)
-                if (rxlist) {
+                if (opts.rxlist) {
                     if (!ptest.name.match(regex)) {
                         continue
                     }
@@ -240,30 +262,15 @@ class QTest {
             console.log(">>>>", this.name)
         }
 
-        let rxlist = []
         let opts = {
+            rxlist: [],
             ...this.opts
         }
         
-        if (process && opts.argparse) {
-            let argv = process.argv
-            for (let i=0; i < argv.length; ++i) {
-                if (argv[i] == "-t" || argv[i] == "-test") {
-                    rxlist.push(argv[i+1])
-                }
-                if (argv[i] == "-l" || argv[i] == "-linear") {
-                    opts.parallel = false
-                }
-                if (argv[i] == "-s" || argv[i] == "-stdout") {
-                    opts.logcap = false
-                }
-            }
-        }
-
         if (this.beforeAll) 
             await this.beforeAll(opts)
 
-        let res = await this._run(rxlist, opts)
+        let res = await this._run(opts)
         
         if (this.afterAll) 
             await this.afterAll(opts)
@@ -292,16 +299,18 @@ class QTest {
       return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
 
-    runner(name, opts) {
-        let ret = new QTest(name, {...this.opts, ...opts})
-        ret.opts.argparse = false
-        ret.level = Math.min(this.level + 1, this.opts.maxLevel)
+    runner(...args) {
+        // used internally, make a new runner, and disables argument parsing
+        let ret = new QTest(...args)
+        ret.level = 1
         return ret
     }
 
     scope(name, opts) {
         opts = {...this.opts, ...opts}
-        let ret = this.runner(name, opts)
+        console.log("SCOPE", name, opts, this.opts)
+        let ret = new QTest(name, opts)
+        ret.level = Math.min(this.level + 1, this.opts.maxLevel)
         this._scopes.push(ret)
         return ret
     }
