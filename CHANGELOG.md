@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.3]:
+ ### Changed
+   - Fiddling with async tracking stuff
+
 ## [1.4.2]:
  ### Changed
    - Sinon plugin works with scoped tests
