@@ -51,6 +51,7 @@ class QTest {
             maxLevel: 3,
             trackAsync: true,
             failUnhandled: true,
+            lingerMsecs: 200,
             rxlist: [],
         }
     
@@ -63,8 +64,9 @@ Options:
     -t | -test <regex>     : regex match tests
     -l | -linear           : no async run
     -s | -stdout           : all errs to stdout
-    -noasync               : allow unawaited async calls
     -noreject              : allow unhandled rejections
+    -asyncLinger <msecs>   : allow lingering async (default: 200)
+    -noasync               : disable async tracking
         `)
     }
 
@@ -370,8 +372,12 @@ Options:
         if (this.afterAll) 
             await this.afterAll(opts)
 
-        if (asyncHook)
+        if (asyncHook) {
+            if (this._asyncOps) {
+                await this.sleep(this.opts.lingerMsecs)
+            }
             asyncHook.disable()
+        }
 
         res.scopes = []
         for (let scope of this._scopes) {

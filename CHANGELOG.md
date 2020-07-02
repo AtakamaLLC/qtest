@@ -5,6 +5,7 @@
    - Track async calls.  Fail on unawaited.
    - Fail on unhandled promise rejections.
    - Options: -noreject, -noasync to disable these.
+   - Show durations
 
 ## [1.3.0]:
  ### Added
