@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.3]:
+ ### Changed
+   - Don't print module if no tests run
+   - Don't print 'No tests run' if subcollection is empty
+
 ## [1.2.2]:
  ### Changed
    - Fix some printing issues

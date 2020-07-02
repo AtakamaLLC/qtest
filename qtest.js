@@ -200,6 +200,7 @@ class QTest {
         let startTime = new Date()
 
         let tests = []
+        let first = true
         for (let t of this._tests) {
             let params = this.combinations(t.params)
             if (params.length == 0)
@@ -213,6 +214,10 @@ class QTest {
                     if (!ptest.name.match(regex)) {
                         continue
                     }
+                }
+                if (this.name && first) {
+                    console.log(">>>>", this.name)
+                    first = false
                 }
                 let promise = this._run_test(ptest, popt, res)
                 if (!opts.parallel)
@@ -231,7 +236,7 @@ class QTest {
         }
         await Promise.all(tests)
         if (!res.failed) {
-            if (!res.passed) {
+            if (!res.passed && this.level == 0) {
                 process.exitCode = 2
                 console.log("No tests run.")
             } else {
@@ -263,10 +268,6 @@ class QTest {
          *      }
          *  }
          */
-
-        if (this.name) {
-            console.log(">>>>", this.name)
-        }
 
         let opts = {
             rxlist: [],
