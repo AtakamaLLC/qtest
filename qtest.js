@@ -29,6 +29,8 @@ try {
     async_hooks = null
 }
 
+let assert = require('assert')
+
 
 class QTest {
     constructor(name, opts) {
@@ -56,6 +58,34 @@ class QTest {
         }
     
         this.parseArgs()
+        this.addPlugins()
+    }
+
+    addPlugins() {
+        this.assert = assert
+
+        try {
+            // if you have sinon in your devDeps... add them to the test singleton
+            var sinon = require('sinon')
+            
+            // more clear names since they are top level
+            this.fn = sinon.fake
+            this.replaceFn = sinon.replace
+            this.argsMatch = sinon.match
+
+            // expose most of sinon to the top level
+            this.spy = sinon.spy
+            this.stub = sinon.stub
+            this.createSandbox = sinon.createSandbox
+            this.replaceGetter = sinon.replaceGetter
+            this.replaceSetter = sinon.replaceSetter
+            this.restoreObject = sinon.restoreObject
+            this.useFakeTimers = sinon.useFakeTimers
+            this.useFakeXMLHttpRequest = sinon.useFakeXMLHttpRequest
+            
+            sinon.assert.expose(assert, {prefix: "", includeFail: false})
+        } catch {
+        }
     }
 
     printUsage() {
@@ -439,31 +469,4 @@ Options:
 }
 
 let test = new QTest()
-let assert = require('assert')
-
-test.assert = assert
-
-try {
-    // if you have sinon in your devDeps... add them to the test singleton
-    var sinon = require('sinon')
-    
-    // more clear names since they are top level
-    test.fn = sinon.fake
-    test.replaceFn = sinon.replace
-    test.argsMatch = sinon.match
-
-    // expose most of sinon to the top level
-    test.spy = sinon.spy
-    test.stub = sinon.stub
-    test.createSandbox = sinon.createSandbox
-    test.replaceGetter = sinon.replaceGetter
-    test.replaceSetter = sinon.replaceSetter
-    test.restoreObject = sinon.restoreObject
-    test.useFakeTimers = sinon.useFakeTimers
-    test.useFakeXMLHttpRequest = sinon.useFakeXMLHttpRequest
-    
-    sinon.assert.expose(assert, {prefix: "", includeFail: false})
-} catch {
-}
-
 module.exports = test
