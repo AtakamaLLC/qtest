@@ -170,6 +170,53 @@ test.add("rxopt", async (ctx)=>{
     assert.equal(results.failed, 0)
 })
 
+
+test.add("async-ok", async (ctx) => {
+    let my = test.runner()
+    my.add("t0", async () => {
+        // this has to run after all other async tests
+        await test.sleep(100)
+    })
+    let res = await my.run()
+
+    assert.equal(res.passed, 1)
+    ctx.log(res.asyncOps)
+    assert.deepEqual(res.asyncOps, new Map())
+})
+
+test.skip("async-bad", async (ctx) => {
+    test.sleep(2000)
+})
+
+test.add("async-fail", async (ctx) => {
+    let my = test.runner()
+    let forever = true
+    let fn = async () => {
+        while(forever) {
+            await test.sleep(1)
+        }
+    }
+
+    var promise
+    my.add("t0", async () => {
+        // leaves some horrible context around
+        promise = fn()
+    })
+    let res = await my.run()
+    ctx.log("async ops", res.asyncOps)
+
+    forever = false
+    try {
+        assert.equal(res.passed, 1)
+        assert.ok(res.asyncOps.size)
+    } catch (e) {
+        // clear sleep
+        await promise
+        throw(e)
+    }
+    await promise
+})
+
 try {
     require('sinon')
     test.add("sinon", async (ctx)=>{

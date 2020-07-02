@@ -65,6 +65,9 @@ node_modules/.bin/nyc node test.js
       - test.fn == sinon.fake
       - test.replaceFn = sinon.replace
       - test.argsMatch = sinon.match
+ - unawaited promise handling
+   - async calls that linger are considered failures
+   - unawaited promise rejections are failures
 
 ### Babel:
 
