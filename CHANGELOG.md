@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.1]:
+ ### Changed
+   - Package minor change
+
 ## [1.4.0]:
  ### Added
    - Track async calls.  Fail on unawaited.
