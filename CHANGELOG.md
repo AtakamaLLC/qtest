@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.2]:
+ ### Changed
+   - Sinon plugin works with scoped tests
+
 ## [1.4.1]:
  ### Changed
    - Package minor change
