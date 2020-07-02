@@ -57,7 +57,14 @@ node_modules/.bin/nyc node test.js
  - t = test.scope("name")
    - creates a new, scoped test collection
    - will get run if the parent is run
-
+ - `yarn add --dev sinon` for asseritions, mocks, and spies
+   - see [sinonjs.org](https://sinonjs.org/) for more details
+   - test.assert will include augmented assertions (assert.calledOnce, et al)
+   - test.spy, test.stub, ... aliased to sinon equivalents
+   - some jesty aliases:
+      - test.fn == sinon.fake
+      - test.replaceFn = sinon.replace
+      - test.argsMatch = sinon.match
 
 ### Babel:
 

@@ -1,9 +1,8 @@
 # Changelog
 
-## [1.2.3]:
+## [1.3.0]:
  ### Changed
-   - Don't print module if no tests run
-   - Don't print 'No tests run' if subcollection is empty
+   - If sinon is installed, expose assertions/mocks/spy's
 
 ## [1.2.2]:
  ### Changed
