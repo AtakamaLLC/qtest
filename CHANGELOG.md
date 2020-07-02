@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0]:
+ ### Changed
+   - --trackAsync to be off by default
+   - --exitMsecs 500
+   - --noReject : don't fail on unhandled
+
+ ### Changed
 ## [1.4.4]:
  ### Changed
    - Fiddling with async tracking stuff
