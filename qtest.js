@@ -310,16 +310,6 @@ Options:
             }
         }
         await Promise.all(tests)
-        if (!res.failed) {
-            if (!res.passed && this.level == 0) {
-                process.exitCode = 2
-                console.log("No tests run.")
-            } else {
-                process.exitCode = 0
-            }
-        } else {
-            process.exitCode = 1
-        }
         let endTime = new Date()
 
         res.duration = endTime - startTime
@@ -418,6 +408,18 @@ Options:
         }
         res.asyncOps = this._asyncOps 
         await this.printSummary(this.level, res)
+
+        if (!res.failed) {
+            if (!res.passed && this.level == 0) {
+                process.exitCode = 2
+                console.log("No tests run.")
+            } else {
+                process.exitCode = 0
+            }
+        } else {
+            process.exitCode = 1
+        }
+
         return res
     }
 
