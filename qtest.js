@@ -140,7 +140,7 @@ Options:
     _logTo(logLines, ...args) {
         let err = this.getErr();
         let frame = err.stack.split("\n")[4];
-        frame = frame.replace("(C:", "/c/")
+        frame = frame.replace("(C:", "(/c/")
         let lineNumber = frame.split(":")[1];
         let filePath = frame.split(":")[0].split('(')[1];
         let fileName = filePath.replace(/\\/g, '/').split('/')
