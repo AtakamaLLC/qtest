@@ -140,6 +140,7 @@ Options:
     _logTo(logLines, ...args) {
         let err = this.getErr();
         let frame = err.stack.split("\n")[4];
+        frame = frame.replace("(C:", "/c/")
         let lineNumber = frame.split(":")[1];
         let filePath = frame.split(":")[0].split('(')[1];
         let fileName = filePath.replace(/\\/g, '/').split('/')
@@ -321,14 +322,22 @@ Options:
     }
 
     onAsyncInit(id, type, trigger, resource) {
-        if (type != 'PROMISE' || trigger != 1) 
-            return
         let error = {}
         Error.captureStackTrace(error);
         const stack = error.stack.split("\n").map(line => line.trim());
         stack.splice(0, 4)
-        if (stack.length && stack[0].includes("QTest._run"))
+        if (stack.length == 0) {
             return
+        }
+        if (stack[0].includes("at QTest.") ||
+            stack[stack.length-1].includes(" (internal/") ||
+            stack[stack.length-1].includes("at QTest.")
+            )
+            return
+        for (let e of stack) {
+            if (type != 'PROMISE' && e.includes('QTest.sleep'))
+                return
+        }
         const asyncOp = {
             id,
             type,
