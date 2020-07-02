@@ -331,6 +331,7 @@ Options:
         }
         if (stack[0].includes("at QTest.") ||
             stack[stack.length-1].includes(" (internal/") ||
+            stack[stack.length-1].includes("/node_modules/nyc") ||
             stack[stack.length-1].includes("at QTest.")
             )
             return
