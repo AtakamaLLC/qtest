@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.4.3]:
+## [1.4.4]:
  ### Changed
    - Fiddling with async tracking stuff
 
