@@ -21,10 +21,20 @@
  *
  */
 
+var async_hooks
+
+try {
+    async_hooks = require('async_hooks')
+} catch {
+    async_hooks = null
+}
+
+
 class QTest {
     constructor(name, opts) {
         this.name = name
         this.level = 0
+        this._asyncOps = new Map()
         this._scopes = []
         this._tests = []
         this._skip = []
@@ -39,10 +49,23 @@ class QTest {
             parallel: true,
             logcap: true,
             maxLevel: 3,
+            trackAsync: true,
+            failUnhandled: true,
             rxlist: [],
         }
     
         this.parseArgs()
+    }
+
+    printUsage() {
+        console.log(`
+Options:
+    -t | -test <regex>     : regex match tests
+    -l | -linear           : no async run
+    -s | -stdout           : all errs to stdout
+    -noasync               : allow unawaited async calls
+    -noreject              : allow unhandled rejections
+        `)
     }
 
     parseArgs() {
@@ -59,6 +82,16 @@ class QTest {
                 }
                 if (argv[i] == "-s" || argv[i] == "-stdout") {
                     opts.logcap = false
+                }
+                if (argv[i] == "-noasync") {
+                    opts.trackAsync = false
+                }
+                if (argv[i] == "-noreject") {
+                    opts.failUnhandled = false
+                }
+                if (argv[i] == "-help" || argv[i] == "--help") {
+                    this.printUsage()
+                    process.exit(1)
                 }
             }
         }
@@ -107,18 +140,22 @@ class QTest {
         } else {
             local.log = console.log
         }
-            
+
+        let duration = 0
         try {
             if (this.before) 
                 await this.before(local)
+            let startTime = new Date();
             await t.func(local)
-            console.log(this.color("green", this._levelPrefix() + "OK: "), t.name)
+            duration = new Date() - startTime
+            console.log(this.color("green", this._levelPrefix() + "OK: "), t.name, duration/1000)
             ok = true
         } catch (e) {
             err = e
             errMsg = "FAIL: "
             ok = false
         }
+        
         if (this.after) {
             try {
                 await this.after(local)
@@ -145,6 +182,7 @@ class QTest {
             ok: ok,
             err: err,
             log: logLines,
+            time: duration,
         }
     }
    
@@ -196,6 +234,10 @@ class QTest {
             tests: {},
         }
         let regex = new RegExp(opts.rxlist.join("|"))
+        
+        let testMatch = (name) => {
+            return !opts.rxlist || name.match(regex)
+        }
 
         let startTime = new Date()
 
@@ -210,11 +252,9 @@ class QTest {
                 let popt = {...opts, ...p}
                 let ptest = {...t}
                 ptest.name = this.paramName(t.name, p)
-                if (opts.rxlist) {
-                    if (!ptest.name.match(regex)) {
-                        continue
-                    }
-                }
+                if (!testMatch(t.name))
+                    continue
+
                 if (this.name && first) {
                     console.log(">>>>", this.name)
                     first = false
@@ -227,6 +267,9 @@ class QTest {
             }
         }
         for (let t of this._skip) {
+            if (!testMatch(t.name)) {
+                continue
+            }
             console.log(this.color("yellow", this._levelPrefix() + "SKIP: "), t.name)
             res.skipped += 1
             res.tests[t.name] = {
@@ -255,6 +298,34 @@ class QTest {
         return " ".repeat(this.level)
     }
 
+    onAsyncInit(id, type, trigger, resource) {
+        if (type != 'PROMISE' || trigger != 1) 
+            return
+        let error = {}
+        Error.captureStackTrace(error);
+        const stack = error.stack.split("\n").map(line => line.trim());
+        stack.splice(0, 4)
+        if (stack.length && stack[0].includes("QTest._run"))
+            return
+        const asyncOp = {
+            id,
+            type,
+            trigger,
+            stack,
+        }
+        this._asyncOps.set(id, asyncOp)
+    }
+    
+    onAsyncDone(id) {
+        this._asyncOps.delete(id)
+    }
+
+    asyncSummary() {
+        for (let op of this._asyncOps.values()) {
+            console.log(op)
+        }
+    }
+
     async run() {
         /*
          * returns an object with:
@@ -273,7 +344,24 @@ class QTest {
             rxlist: [],
             ...this.opts
         }
-        
+      
+        let asyncHook
+        if (this.opts.trackAsync && async_hooks) {
+            asyncHook = async_hooks.createHook({
+                init: this.onAsyncInit.bind(this),
+                destroy: this.onAsyncDone.bind(this),
+                promiseResolve: this.onAsyncDone.bind(this),
+            })
+            asyncHook.enable()
+        }
+
+        if (this.opts.failUnhandled) {
+            process.on('unhandledRejection', (reason, p) => {
+                console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
+                process.exit(3)
+            });
+        }
+
         if (this.beforeAll) 
             await this.beforeAll(opts)
 
@@ -282,6 +370,9 @@ class QTest {
         if (this.afterAll) 
             await this.afterAll(opts)
 
+        if (asyncHook)
+            asyncHook.disable()
+
         res.scopes = []
         for (let scope of this._scopes) {
             let sub = await scope.run()
@@ -289,38 +380,51 @@ class QTest {
             res.passed += sub.passed
             res.failed += sub.failed
         }
-        this.printSummary(this.level, res)
-       return res
+        res.asyncOps = this._asyncOps 
+        await this.printSummary(this.level, res)
+        return res
     }
 
-    printSummary(level, res) {
+    async printSummary(level, res) {
         if (level != 0) {
             return
         }
         let args = [
             "PASSED:", res.passed,
-            "FAILED:", res.failed,
+            ", FAILED:", res.failed,
         ]
         if (res.skipped) {
-            args = args.concat(["SKIPPED:", res.skipped])
+            args = args.concat([", SKIPPED:", res.skipped])
         }
-        args = args.concat(["DURATION:", res.duration/1000])
+        args = args.concat([", DURATION:", res.duration/1000])
+
+        this.asyncSummary()
+      
+        if (res.asyncOps.size) {
+            args = args.concat([", UNAWAITED:", res.asyncOps.size])
+        }
+        
         console.log("====", ...args)
+        
+        if (res.asyncOps.size) {
+            process.exit(3)
+        }
     }
 
     sleep(milliseconds) {
       return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
 
-    runner(...args) {
-        // used internally, make a new runner, and disables argument parsing
-        let ret = new QTest(...args)
+    runner(opts) {
+        // used for testing self: make a new runner, and disables argument parsing
+        let ret = new QTest(undefined, {...this.opts, rxlist: [], trackAsync: true, ...opts})
         ret.level = 1
         return ret
     }
 
     scope(name, opts) {
-        opts = {...this.opts, ...opts}
+        // make a new runner, add to this runner's 'scopes' list
+        opts = {...this.opts, ...opts, trackAsync: false}
         let ret = new QTest(name, opts)
         ret.level = Math.min(this.level + 1, this.opts.maxLevel)
         this._scopes.push(ret)

@@ -1,7 +1,13 @@
 # Changelog
 
+## [1.4.0]:
+ ### Added
+   - Track async calls.  Fail on unawaited.
+   - Fail on unhandled promise rejections.
+   - Options: -noreject, -noasync to disable these.
+
 ## [1.3.0]:
- ### Changed
+ ### Added
    - If sinon is installed, expose assertions/mocks/spy's
 
 ## [1.2.2]:
