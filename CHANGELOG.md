@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.2]:
+ ### Changed
+   - Fix some printing issues
+
 ## [1.2.1]:
  ### Changed
    - Test fails if 'after' fails

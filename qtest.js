@@ -192,9 +192,12 @@ class QTest {
             passed: 0,
             skipped: 0,
             failed: 0,
+            duration: null,
             tests: {},
         }
         let regex = new RegExp(opts.rxlist.join("|"))
+
+        let startTime = new Date()
 
         let tests = []
         for (let t of this._tests) {
@@ -237,6 +240,9 @@ class QTest {
         } else {
             process.exitCode = 1
         }
+        let endTime = new Date()
+
+        res.duration = endTime - startTime
         return res
     }
 
@@ -282,17 +288,23 @@ class QTest {
             res.passed += sub.passed
             res.failed += sub.failed
         }
-        if (this.level == 0) {
-            let args = [
-                "PASSED:", res.passed,
-                "FAILED:", res.failed
-            ]
-            if (res.skipped) {
-                args = args.concat(["SKIPPED:", res.skipped])
-            }
-            console.log("====", ...args)
+        this.printSummary(this.level, res)
+       return res
+    }
+
+    printSummary(level, res) {
+        if (level != 0) {
+            return
         }
-        return res
+        let args = [
+            "PASSED:", res.passed,
+            "FAILED:", res.failed,
+        ]
+        if (res.skipped) {
+            args = args.concat(["SKIPPED:", res.skipped])
+        }
+        args = args.concat(["DURATION:", res.duration/1000])
+        console.log("====", ...args)
     }
 
     sleep(milliseconds) {
@@ -308,7 +320,6 @@ class QTest {
 
     scope(name, opts) {
         opts = {...this.opts, ...opts}
-        console.log("SCOPE", name, opts, this.opts)
         let ret = new QTest(name, opts)
         ret.level = Math.min(this.level + 1, this.opts.maxLevel)
         this._scopes.push(ret)
