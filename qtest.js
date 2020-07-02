@@ -328,4 +328,32 @@ class QTest {
     }
 }
 
-module.exports = new QTest()
+let test = new QTest()
+let assert = require('assert')
+
+test.assert = assert
+
+try {
+    // if you have sinon in your devDeps... add them to the test singleton
+    var sinon = require('sinon')
+    
+    // more clear names since they are top level
+    test.fn = sinon.fake
+    test.replaceFn = sinon.replace
+    test.argsMatch = sinon.match
+
+    // expose most of sinon to the top level
+    test.spy = sinon.spy
+    test.stub = sinon.stub
+    test.createSandbox = sinon.createSandbox
+    test.replaceGetter = sinon.replaceGetter
+    test.replaceSetter = sinon.replaceSetter
+    test.restoreObject = sinon.restoreObject
+    test.useFakeTimers = sinon.useFakeTimers
+    test.useFakeXMLHttpRequest = sinon.useFakeXMLHttpRequest
+    
+    sinon.assert.expose(assert, {prefix: "", includeFail: false})
+} catch {
+}
+
+module.exports = test

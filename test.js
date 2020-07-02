@@ -1,5 +1,5 @@
 test = require('qtest')
-assert = require('assert')
+assert = test.assert
 
 test.add("basic", async (ctx)=>{
     let my = test.runner()
@@ -170,6 +170,17 @@ test.add("rxopt", async (ctx)=>{
     assert.equal(results.failed, 0)
 })
 
+try {
+    require('sinon')
+    test.add("sinon", async (ctx)=>{
+        let fake = test.fn()
+        fake(44)
+        assert(fake.called)
+        assert.called(fake)
+    })
+} catch(e) {
+    test.skip("sinon")
+}
 
 
 test.run()

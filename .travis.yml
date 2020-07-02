@@ -9,3 +9,4 @@ script:
 install:
   - npm install -g codecov
   - npm install -g nyc
+  - npm install sinon
