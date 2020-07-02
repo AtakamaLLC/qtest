@@ -173,14 +173,17 @@ test.add("rxopt", async (ctx)=>{
 
 test.add("async-ok", async (ctx) => {
     let my = test.runner()
+    let inner = 0
     my.add("t0", async () => {
         // this has to run after all other async tests
         await test.sleep(100)
+        inner = 1
     })
     let res = await my.run()
 
+    assert.equal(inner, 1)
     assert.equal(res.passed, 1)
-    ctx.log(res.asyncOps)
+    ctx.log("ops...", res.asyncOps)
     assert.deepEqual(res.asyncOps, new Map())
 })
 
