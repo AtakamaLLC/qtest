@@ -22,7 +22,7 @@
  */
 
 class QTest {
-    constructor(name) {
+    constructor(name, opts) {
         this.name = name
         this.level = 0
         this._scopes = []
@@ -34,8 +34,12 @@ class QTest {
             "yellow" : "\x1b[33m",
             "red": "\x1b[31m",
         }
-        this.opts = {}
-        this.argparse = true
+        this.opts = opts || {
+            argparse: true,
+            parallel: true,
+            logcap: true,
+            maxLevel: 3,
+        }
     }
 
     color(name, str) {
@@ -72,6 +76,7 @@ class QTest {
         let logLines = []
         let local = {...opts}
         let err
+        let errMsg
 
         if (opts.logcap) {
             local.log = (...args) => {
@@ -89,18 +94,29 @@ class QTest {
             ok = true
         } catch (e) {
             err = e
+            errMsg = "FAIL: "
             ok = false
+        }
+        if (this.after) {
+            try {
+                await this.after(local)
+            } catch (e) {
+                err = e
+                errMsg = "FAIL/AFTER: "
+                ok = false
+            }
+        }
+        if (!ok) {
             if (this.translateError) {
                 err = await this.translateError(err)
             }
-            console.log(this.color("red", this._levelPrefix() + "FAIL: "), t.name, "# ", err)
+            console.log(this.color("red", this._levelPrefix() + errMsg), t.name, "# ", err)
             for (let ent of logLines) {
                 ent.unshift("   ")
                 console.log.apply(null, ent)
             }
         }
-        if (this.after) 
-            await this.after(local)
+
         if (ok) res.passed += 1
         if (!ok) res.failed += 1
         res.tests[t.name] = {
@@ -226,12 +242,10 @@ class QTest {
 
         let rxlist = []
         let opts = {
-            parallel: true,
-            logcap: true,
             ...this.opts
         }
         
-        if (process && this.argparse) {
+        if (process && opts.argparse) {
             let argv = process.argv
             for (let i=0; i < argv.length; ++i) {
                 if (argv[i] == "-t" || argv[i] == "-test") {
@@ -278,16 +292,16 @@ class QTest {
       return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
 
-    runner(...args) {
-        let ret = new QTest(...args)
-        ret.level = this.level + 1
-        ret.argparse = false
+    runner(name, opts) {
+        let ret = new QTest(name, {...this.opts, ...opts})
+        ret.opts.argparse = false
+        ret.level = Math.min(this.level + 1, this.opts.maxLevel)
         return ret
     }
 
-    scope(...args) {
-        let ret = this.runner(...args)
-        ret.argparse = this.argparse
+    scope(name, opts) {
+        opts = {...this.opts, ...opts}
+        let ret = this.runner(name, opts)
         this._scopes.push(ret)
         return ret
     }

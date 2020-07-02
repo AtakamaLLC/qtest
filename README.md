@@ -5,6 +5,7 @@
 
 Simple test runner for nodejs.
 
+
 ### Install:
 
 ```
@@ -36,7 +37,7 @@ test.run()
 
 ### Coverage:
 
-```
+```bash
 npm install nyc
 node_modules/.bin/nyc node test.js
 ```
@@ -59,9 +60,10 @@ node_modules/.bin/nyc node test.js
 
 
 ### Babel:
+
  Example package.json using babel and coverage:
 
- ```json
+```json
   "scripts": {
     "test": "babel-node --ignore nothing test.js",
     "coverage": "nyc npm run test"
@@ -74,4 +76,7 @@ node_modules/.bin/nyc node test.js
       "lcov",
       "text"
     ]
- ```
+```
+
+### [Changelog](./CHANGELOG.md)
+

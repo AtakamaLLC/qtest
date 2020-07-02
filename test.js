@@ -125,4 +125,23 @@ test.add("translateError", async (ctx)=>{
     assert.equal(results.tests.t1.err, "translated")
 })
 
+test.add("failAfter", async (ctx)=>{
+    let my = test.runner()
+  
+    my.after = () => {
+        throw "err"
+    }
+
+    my.add("t1", async (ctx) => {
+        assert.equal(1,1)
+    })
+    
+    results = await my.run()
+    
+    ctx.log(JSON.stringify(results))
+
+    assert.equal(results.tests.t1.err, "err")
+})
+
+
 test.run()
