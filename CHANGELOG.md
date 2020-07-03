@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.1]:
+ ### Changed
+   - --trackAsync to be off by default for real
+
 ## [1.5.0]:
  ### Changed
    - --trackAsync to be off by default

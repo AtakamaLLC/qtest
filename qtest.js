@@ -50,7 +50,7 @@ class QTest {
       parallel: true,
       logcap: true,
       maxLevel: 3,
-      trackAsync: true,
+      trackAsync: false,
       failUnhandled: true,
       exitMsecs: 500,
       rxlist: []
