@@ -35,7 +35,7 @@ class QTest extends Function {
   constructor (name, opts) {
     super('...args', 'return this._bound.add(...args)')
     this._bound = this.bind(this)
-    let inst = this._bound
+    const inst = this._bound
 
     inst._name = name
     inst.level = 0
