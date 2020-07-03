@@ -1,7 +1,7 @@
 const test = require('qtest')
 const assert = test.assert
 
-test.add('basic', async (ctx) => {
+test('basic', async (ctx) => {
   const my = test.runner()
 
   my.add('t1', async (ctx) => {
@@ -18,7 +18,7 @@ test.add('basic', async (ctx) => {
   assert.equal(results.tests.t1.log[0][1], 'loggy')
 })
 
-test.add('param', async (ctx) => {
+test('param', async (ctx) => {
   const my = test.runner()
 
   my.add('t1', async (ctx) => {
@@ -36,7 +36,7 @@ test.add('param', async (ctx) => {
   assert.ok(results.tests['t1:param=false'].err)
 })
 
-test.add('scoped', async (ctx) => {
+test('scoped', async (ctx) => {
   const my = test.runner()
 
   my.before = (ctx) => { ctx.x = 1 }
@@ -60,7 +60,7 @@ test.add('scoped', async (ctx) => {
   assert.equal(results.scopes[0].name, 'module')
 })
 
-test.add('skipped', async (ctx) => {
+test('skipped', async (ctx) => {
   const my = test.runner()
 
   my.skip('t1', async (ctx) => {
@@ -80,7 +80,7 @@ test.add('skipped', async (ctx) => {
   assert.equal(results.tests.t1.skipped, true)
 })
 
-test.add('parallel', async (ctx) => {
+test('parallel', async (ctx) => {
   const my = test.runner()
   my.opts.parallel = ctx.parallel
 
@@ -105,7 +105,7 @@ test.add('parallel', async (ctx) => {
   }
 }, { parallel: [true, false] })
 
-test.add('translateError', async (ctx) => {
+test('translateError', async (ctx) => {
   const my = test.runner()
 
   my.translateError = async (errObj) => {
@@ -123,7 +123,7 @@ test.add('translateError', async (ctx) => {
   assert.equal(results.tests.t1.err, 'translated')
 })
 
-test.add('failAfter', async (ctx) => {
+test('failAfter', async (ctx) => {
   const my = test.runner()
 
   my.after = () => {
@@ -141,7 +141,7 @@ test.add('failAfter', async (ctx) => {
   assert.deepEqual(results.tests.t1.err, Error('err'))
 })
 
-test.add('rxopt', async (ctx) => {
+test('rxopt', async (ctx) => {
   process.argv = ['-t', 't2']
 
   const my = test.runner()
@@ -168,7 +168,7 @@ test.add('rxopt', async (ctx) => {
   assert.equal(results.failed, 0)
 })
 
-test.add('async-ok', async (ctx) => {
+test('async-ok', async (ctx) => {
   const my = test.runner()
   let inner = 0
   my.add('t0', async () => {
@@ -188,7 +188,7 @@ test.skip('async-bad', async (ctx) => {
   test.sleep(2000)
 })
 
-test.add('async-fail', async (ctx) => {
+test('async-fail', async (ctx) => {
   const my = test.runner()
   let forever = true
   const fn = async () => {
@@ -219,7 +219,7 @@ test.add('async-fail', async (ctx) => {
 
 try {
   require('sinon')
-  test.add('sinon', async (ctx) => {
+  test('sinon', async (ctx) => {
     const fake = test.fn()
     fake(44)
     assert(fake.called)
