@@ -13,7 +13,7 @@
  *    test = require('testman')
  *    assert = require('assert')
  *
- *    test.add("hello", ()=>{
+ *    test("hello", ()=>{
  *      assert.equals(1,1)
  *    })
  *
@@ -31,21 +31,25 @@ try {
 
 const assert = require('assert')
 
-class QTest {
+class QTest extends Function {
   constructor (name, opts) {
-    this.name = name
-    this.level = 0
-    this._asyncOps = new Map()
-    this._scopes = []
-    this._tests = []
-    this._skip = []
-    this._color = {
+    super('...args', 'return this._bound.add(...args)')
+    this._bound = this.bind(this)
+    const inst = this._bound
+
+    inst._name = name
+    inst.level = 0
+    inst._asyncOps = new Map()
+    inst._scopes = []
+    inst._tests = []
+    inst._skip = []
+    inst._color = {
       reset: '\x1b[0m',
       green: '\x1b[32m',
       yellow: '\x1b[33m',
       red: '\x1b[31m'
     }
-    this.opts = opts || {
+    inst.opts = opts || {
       argparse: true,
       parallel: true,
       logcap: true,
@@ -56,8 +60,10 @@ class QTest {
       rxlist: []
     }
 
-    this.parseArgs()
-    this.addPlugins()
+    inst.parseArgs()
+    inst.addPlugins()
+
+    return inst
   }
 
   addPlugins () {
@@ -264,7 +270,7 @@ Options:
 
   async _run (opts) {
     const res = {
-      name: this.name,
+      name: this._name,
       passed: 0,
       skipped: 0,
       failed: 0,
@@ -291,8 +297,8 @@ Options:
         ptest.name = this.paramName(t.name, p)
         if (!testMatch(t.name)) { continue }
 
-        if (this.name && first) {
-          console.log('>>>>', this.name)
+        if (this._name && first) {
+          console.log('>>>>', this._name)
           first = false
         }
         const promise = this._runTest(ptest, popt, res)
@@ -483,5 +489,5 @@ Options:
   }
 }
 
-const test = new QTest()
-module.exports = test
+const runner = new QTest()
+module.exports = runner

@@ -19,7 +19,7 @@ npm install @atakama/qtest
 test = require('@atakama/qtest')
 assert = require('assert')
 
-test.add("test name", async (ctx)=>{
+test("test name", async (ctx)=>{
     ctx.log("some log")
 
     assert.equal(ctx.someFixture, 444)

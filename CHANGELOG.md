@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.0]:
+ ### Added
+   - use test() instead of test.add (if you want)
+
 ## [1.5.1]:
  ### Changed
    - --trackAsync to be off by default for real
