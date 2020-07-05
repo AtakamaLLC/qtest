@@ -25,8 +25,8 @@ var AsyncHooks
 
 try {
   AsyncHooks = require('async_hooks')
-} catch (e) {       // eslint-disable-line no-unused-vars
-  //async not supported
+} catch (e) { // eslint-disable-line no-unused-vars
+  // async not supported
   AsyncHooks = null
 }
 
@@ -90,7 +90,7 @@ class QTest extends Function {
       this.useFakeXMLHttpRequest = sinon.useFakeXMLHttpRequest
 
       sinon.assert.expose(assert, { prefix: '', includeFail: false })
-    } catch (e) {   // eslint-disable-line no-unused-vars
+    } catch (e) { // eslint-disable-line no-unused-vars
       this.fn = () => { throw Error('yarn add `sinon` first') }
     }
   }
