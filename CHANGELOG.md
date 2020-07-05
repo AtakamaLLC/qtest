@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.1]:
+ ### Fixed
+   - node 8 fix
+
 ## [1.6.0]:
  ### Added
    - use test() instead of test.add (if you want)
