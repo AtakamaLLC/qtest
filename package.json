@@ -1,6 +1,6 @@
 {
   "name": "@atakama/qtest",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "quick and simple test runner for nodejs (alternative to jest)",
   "main": "qtest.js",
   "scripts": {
