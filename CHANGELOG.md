@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.2]:
+ ### Fixed
+   - trackAsync works, well tested, useful
+
 ## [1.6.1]:
  ### Fixed
    - node 8 fix

@@ -31,6 +31,11 @@ try {
 }
 
 const assert = require('assert')
+const fs = require('fs')
+const util = require('util')
+const readFile = util.promisify(fs.readFile)
+const findUp = require('find-up')
+let nextId = 0
 
 class QTest extends Function {
   constructor (name, opts) {
@@ -40,7 +45,10 @@ class QTest extends Function {
 
     inst._name = name
     inst.level = 0
+    inst._id = (nextId += 1)
     inst._asyncOps = new Map()
+    inst._asyncParent = new Map()
+    inst._asyncKids = new Map()
     inst._scopes = []
     inst._tests = []
     inst._skip = []
@@ -57,6 +65,7 @@ class QTest extends Function {
       maxLevel: 3,
       trackAsync: false,
       failUnhandled: true,
+      runSkipped: false,
       exitMsecs: 500,
       rxlist: []
     }
@@ -65,6 +74,11 @@ class QTest extends Function {
     inst.addPlugins()
 
     return inst
+  }
+
+  errLog (...args) {
+    // use this to debug async hooks, if needed
+    fs.writeSync(1, util.format(...args) + '\n')
   }
 
   addPlugins () {
@@ -97,14 +111,23 @@ class QTest extends Function {
 
   printUsage () {
     console.log(`
-Options:
-    -t | --test <regex>     : regex match tests
-    -l | --linear           : no async run
-    -s | --stdout           : all errs to stdout
-    --noReject              : allow unhandled rejections
-    --trackAsync            : disable async tracking
-    --exitMsecs             : exit after (500) msecs when tests are done
-        `)
+            Options:
+            -t | --test <regex>     : regex match tests
+            -l | --linear           : no async run
+            -s | --stdout           : all errs to stdout
+            --noReject              : allow unhandled rejections
+            --skipped               : run skipped tests
+            --trackAsync            : disable async tracking
+            --exitMsecs             : exit after (500) msecs when tests are done
+            `)
+  }
+
+  async getOpts () {
+    const fil = await findUp('package.json')
+    if (!fil) return {}
+    const pkg = JSON.parse(await readFile(fil))
+    const opts = pkg['@atakama/qtest'] || {}
+    return { ...this.defaultOpts, ...opts }
   }
 
   parseArgs () {
@@ -134,6 +157,9 @@ Options:
         if (argv[i] === '--noReject') {
           opts.failUnhandled = false
         }
+        if (argv[i] === '--skipped') {
+          opts.runSkipped = true
+        }
         if (argv[i] === '-help' || argv[i] === '--help') {
           this.printUsage()
           process.exit(1)
@@ -155,7 +181,10 @@ Options:
     let frame = err.stack.split('\n')[4]
     frame = frame.replace('(C:', '(/c/')
     const lineNumber = frame.split(':')[1]
-    const filePath = frame.split(':')[0].split('(')[1]
+    let filePath = frame.split(':')[0].split('(')[1]
+    if (!filePath) {
+      filePath = frame.split(':')[0]
+    }
     let fileName = filePath.replace(/\\/g, '/').split('/')
     fileName = fileName[fileName.length - 1]
     const fileInfo = fileName + ':' + lineNumber
@@ -169,7 +198,11 @@ Options:
   }
 
   skip (name, func, params) {
-    this._skip.push({ name: name, func: func, params: params })
+    if (this.opts.runSkipped) {
+      this.add(name, func, params)
+    } else {
+      this._skip.push({ name: name, func: func, params: params })
+    }
   }
 
   async _runTest (t, opts, res) {
@@ -187,17 +220,31 @@ Options:
       local.log = console.log
     }
 
+    let func
+    if (this.opts.trackAsync) {
+      func = async (opts) => {
+        return await this.tracker(t.func, opts)
+      }
+    } else {
+      func = t.func
+    }
+
     let duration = 0
+    let unawaited
     try {
       if (this.before) { await this.before(local) }
       const startTime = new Date()
-      await t.func(local)
+      unawaited = await func(local)
+      if (!unawaited) {
+        unawaited = []
+      }
       duration = new Date() - startTime
       console.log(this.color('green', this._levelPrefix() + 'OK: '), t.name, duration / 1000)
       ok = true
     } catch (e) {
       err = e
       errMsg = 'FAIL: '
+      unawaited = []
       ok = false
     }
 
@@ -223,11 +270,13 @@ Options:
 
     if (ok) res.passed += 1
     if (!ok) res.failed += 1
+    if (unawaited.length) res.unawaited += 1
     res.tests[t.name] = {
       ok: ok,
       err: err,
       log: logLines,
-      time: duration
+      time: duration,
+      unawaited: unawaited
     }
   }
 
@@ -275,6 +324,7 @@ Options:
       passed: 0,
       skipped: 0,
       failed: 0,
+      unawaited: 0,
       duration: null,
       tests: {}
     }
@@ -324,38 +374,93 @@ Options:
     return res
   }
 
+  async tracker (func, ...args) {
+    // we only use this to get a certain context id to start the chain
+    const asyncResource = new AsyncHooks.AsyncResource('TRACKER')
+    const trackingId = asyncResource.asyncId()
+    this._asyncParent.set(trackingId, null)
+    await asyncResource.runInAsyncScope(func, null, ...args)
+    return this.unwindChain(trackingId)
+  }
+
+  _unwind (id) {
+    const kidSet = this._asyncKids.get(id)
+    this._asyncKids.delete(id)
+    if (!kidSet) return []
+    const kids = Array.from(kidSet)
+    const desc = kids.map(k => this._unwind(k))
+    return kids.concat(...desc)
+  }
+
+  unwindChain (id) {
+    // clean up the launcher id
+    const par = this._asyncParent.get(id)
+    const sibs = this._asyncKids.get(par)
+    sibs && sibs.delete(id)
+    if (sibs && !sibs.size) { this._asyncKids.delete(par) }
+    this.onAsyncDone(id)
+
+    // clean up this frame
+    this.onAsyncDone(AsyncHooks.executionAsyncId())
+
+    const descendents = this._unwind(id)
+    const res = descendents.map(id => this._asyncOps.get(id)).filter(op => op)
+    descendents.map(id => { this._asyncOps.delete(id); this._asyncParent.delete(id) })
+    const frames = res.map(ent => ent.frame)
+    return frames
+  }
+
   _levelPrefix () {
     return ' '.repeat(this.level)
   }
 
   onAsyncInit (id, type, trigger) {
-    if (type !== 'PROMISE') {
+    if (!this._asyncParent.has(trigger)) {
+      // i'm not tracking this one
       return
     }
-    const error = {}
-    Error.captureStackTrace(error)
-    const stack = error.stack.split('\n').map(line => line.trim())
-    stack.splice(0, 4)
-    if (stack.length === 0) {
-      return
+    this._asyncParent.set(id, trigger)
+    const kids = this._asyncKids.get(trigger)
+    if (!this._asyncKids.get(trigger)) {
+      this._asyncKids.set(trigger, new Set([id]))
+    } else {
+      kids.add(id)
     }
-    if (stack[0].includes('at QTest.') ||
-            (stack[1] && stack[1].includes('at QTest.')) ||
-            stack[stack.length - 1].includes(' (internal/') ||
-            stack[stack.length - 1].includes('/node_modules/nyc') ||
-            false
-    ) { return }
-    const asyncOp = {
-      id,
-      type,
-      trigger,
-      stack
+
+    if (type === 'PROMISE') {
+      // other ops, we don't bother recording... not meaningful
+      const error = {}
+      Error.captureStackTrace(error)
+      const stack = error.stack.split('\n').map(line => line.trim())
+
+      // search for first entry that isn't the test framework
+      let frame
+      for (let i = 4; i < stack.length; ++i) {
+        if (!stack[i].includes(__filename)) {
+          frame = stack[i]
+          break
+        }
+      }
+
+      const asyncOp = {
+        id,
+        type,
+        trigger,
+        frame
+      }
+
+      this._asyncOps.set(id, asyncOp)
     }
-    this._asyncOps.set(id, asyncOp)
   }
 
   onAsyncDone (id) {
     this._asyncOps.delete(id)
+    const par = this._asyncParent.get(id)
+    const sibs = this._asyncKids.get(par)
+    if (sibs && !sibs.size) {
+      this._asyncKids.delete(par)
+    }
+    this._asyncParent.delete(id)
   }
 
   asyncSummary () {
@@ -395,10 +500,7 @@ Options:
     }
 
     if (this.opts.failUnhandled && this.level === 0) {
-      process.on('unhandledRejection', (reason, p) => {
-        console.log('Unhandled Rejection at: Promise', p, 'reason:', reason)
-        process.exit(3)
-      })
+      process.on('unhandledRejection', up => { throw up })
     }
 
     if (this.beforeAll) { await this.beforeAll(opts) }
@@ -413,12 +515,12 @@ Options:
       res.scopes.push(sub)
       res.passed += sub.passed
       res.failed += sub.failed
+      res.unawaited += sub.unawaited
     }
-    if (this.trackAsync && this._asyncOps.length > 0 && asyncHook) {
-      await this.sleep(this.exitMsecs)
+
+    if (asyncHook) {
       asyncHook.disable()
     }
-    res.asyncOps = this._asyncOps
 
     await this.printSummary(this.level, res)
 
@@ -456,15 +558,16 @@ Options:
     }
     args = args.concat([', DURATION:', res.duration / 1000])
 
-    this.asyncSummary()
-
-    if (res.asyncOps.size) {
-      args = args.concat([', UNAWAITED:', res.asyncOps.size])
+    if (res.unawaited) {
+      args = args.concat([', UNAWAITED:', res.unawaited])
+      for (const t in res.tests) {
+        console.log(res.tests[t])
+      }
     }
 
     console.log('====', ...args)
 
-    if (res.asyncOps.size) {
+    if (res.unawaited) {
       process.exit(3)
     }
   }
