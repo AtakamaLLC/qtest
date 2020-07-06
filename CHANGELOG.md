@@ -1,8 +1,12 @@
 # Changelog
 
+## [1.6.4]:
+ ### Changed
+   - trackAsync output is better
+
 ## [1.6.3]:
- ### Fixed
-   - trackAsync works, well tested, useful
+ ### Changed
+   - trackAsync useful
 
 ## [1.6.1]:
  ### Fixed
