@@ -223,7 +223,7 @@ class QTest extends Function {
     let func
     if (this.opts.trackAsync) {
       func = async (opts) => {
-        return await this.tracker(t.func, opts)
+        return await this.tracker(() => t.func(opts))
       }
     } else {
       func = t.func
@@ -374,12 +374,12 @@ class QTest extends Function {
     return res
   }
 
-  async tracker (func, ...args) {
+  async tracker (func) {
     // we only use this to get a certain context id to start the chain
     const asyncResource = new AsyncHooks.AsyncResource('TRACKER')
     const trackingId = asyncResource.asyncId()
     this._asyncParent.set(trackingId, null)
-    await asyncResource.runInAsyncScope(func, null, ...args)
+    await asyncResource.runInAsyncScope(func)
     return this.unwindChain(trackingId)
   }
 
@@ -406,7 +406,7 @@ class QTest extends Function {
     const descendents = this._unwind(id)
     const res = descendents.map(id => this._asyncOps.get(id)).filter(op => op)
     descendents.map(id => { this._asyncOps.delete(id); this._asyncParent.delete(id) })
-    const frames = res.map(ent => ent.stack)
+    const frames = res.map(ent => ent.frame)
     return frames
   }
 
@@ -451,11 +451,13 @@ class QTest extends Function {
         stack
       }
 
+      //      this.errLog("init", id, type, trigger, stack)
       this._asyncOps.set(id, asyncOp)
     }
   }
 
   onAsyncDone (id) {
+    //      this.errLog("done", id)
     this._asyncOps.delete(id)
     const par = this._asyncParent.get(id)
     const sibs = this._asyncKids.get(par)
@@ -463,13 +465,6 @@ class QTest extends Function {
       this._asyncKids.delete(par)
     }
     this._asyncParent.delete(id)
-  }
-
-  asyncSummary () {
-    if (this._asyncOps.length) { console.log('==== ASYNC REPORT ====') }
-    for (const op of this._asyncOps.values()) {
-      console.log(op)
-    }
   }
 
   async run () {
