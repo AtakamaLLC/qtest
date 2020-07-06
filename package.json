@@ -9,6 +9,10 @@
     "coverage": "nyc --reporter lcov --reporter text-summary yarn test",
     "codecov": "codecov"
   },
+  "files": [
+    "*.js",
+    "*.md"
+  ],
   "nyc": {
     "check-coverage": true,
     "lines": 80,

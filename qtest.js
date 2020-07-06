@@ -406,7 +406,7 @@ class QTest extends Function {
     const descendents = this._unwind(id)
     const res = descendents.map(id => this._asyncOps.get(id)).filter(op => op)
     descendents.map(id => { this._asyncOps.delete(id); this._asyncParent.delete(id) })
-    const frames = res.map(ent => ent.frame)
+    const frames = res.map(ent => ent.stack)
     return frames
   }
 
@@ -434,6 +434,7 @@ class QTest extends Function {
       const stack = error.stack.split('\n').map(line => line.trim())
 
       // search for first entry that isn't the test framework
+      // this doesn't actually work
       let frame
       for (let i = 4; i < stack.length; ++i) {
         if (!stack[i].includes(__filename)) {
@@ -446,7 +447,8 @@ class QTest extends Function {
         id,
         type,
         trigger,
-        frame
+        frame,
+        stack
       }
 
       this._asyncOps.set(id, asyncOp)
@@ -561,7 +563,10 @@ class QTest extends Function {
     if (res.unawaited) {
       args = args.concat([', UNAWAITED:', res.unawaited])
       for (const t in res.tests) {
-        console.log(res.tests[t])
+        const tres = res.tests[t]
+        if (tres.unawaited) {
+          console.log(t, tres)
+        }
       }
     }
 
