@@ -1,4 +1,4 @@
-const test = require('qtest')
+const test = require('./qtest')
 const assert = test.assert
 
 test('basic', async (ctx) => {
@@ -9,7 +9,7 @@ test('basic', async (ctx) => {
     assert.equal(1, 1)
   })
 
-  let results = await my.run()
+  const results = await my.run()
 
   ctx.log(JSON.stringify(results))
 
@@ -71,7 +71,7 @@ test('skipped', async (ctx) => {
     assert.strictEqual(ctx.x, undefined)
   })
 
-  let results = await my.run()
+  const results = await my.run()
 
   ctx.log(JSON.stringify(results))
 
@@ -177,11 +177,17 @@ test('async-ok', async (ctx) => {
     inner = 1
   })
   const res = await my.run()
+  ctx.log('ops...', res.asyncOps)
+  ctx.log('kids...', my._asyncKids)
+  ctx.log('parents...', my._asyncParent)
+
+  // we don't leave crap around
+  assert.deepEqual(my._asyncKids, new Map())
+  assert.deepEqual(my._asyncParent, new Map())
 
   assert.equal(inner, 1)
   assert.equal(res.passed, 1)
-  ctx.log('ops...', res.asyncOps)
-  assert.deepEqual(res.asyncOps, new Map())
+  assert.equal(res.unawaited, 0)
 })
 
 test.skip('async-bad', async (ctx) => {
@@ -193,7 +199,8 @@ test('async-fail', async (ctx) => {
   let forever = true
   const fn = async () => {
     while (forever) {           // eslint-disable-line
-      await test.sleep(1)
+      console.log('forever')
+      await test.sleep(10)
     }
   }
 
@@ -208,25 +215,26 @@ test('async-fail', async (ctx) => {
   forever = false
   try {
     assert.equal(res.passed, 1)
-    assert.ok(res.asyncOps.size)
+    assert.ok(res.unawaited > 0)
   } catch (e) {
     // clear sleep
     await promise
     throw (e)
   }
+
+  // we unwind cleanly, even with an unawaited promise lying around
+  ctx.log('async ops', res.asyncOps)
+  assert.deepEqual(my._asyncKids, new Map())
+  assert.deepEqual(my._asyncParent, new Map())
+
   await promise
 })
 
-try {
-  require('sinon')
-  test('sinon', async (ctx) => {
-    const fake = test.fn()
-    fake(44)
-    assert(fake.called)
-    assert.called(fake)
-  })
-} catch (e) {
-  test.skip('sinon')
-}
+test('sinon', async (ctx) => {
+  const fake = test.fn()
+  fake(44)
+  assert(fake.called)
+  assert.called(fake)
+})
 
 test.run()

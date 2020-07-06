@@ -3,13 +3,9 @@ node_js:
   - 10
 
 script:
-  - node_modules/.bin/eslint qtest.js
-  - nyc --reporter lcov --reporter text-summary npm test
+  - yarn lint
+  - yarn coverage
   - codecov
 
 install:
-  - npm i -g codecov
-  - npm i -g nyc
-  - npm i -g eslint
-  - npm i sinon
-  - npm i --no-save eslint-config-standard@latest eslint-plugin-import eslint-plugin-node eslint-plugin-promise eslint-plugin-standard eslint
+  - yarn
