@@ -87,6 +87,14 @@ node_modules/.bin/nyc node test.js
       "text"
     ]
 ```
+### Webstorm or VSCode interactive debugger
+
+On Windows, you cannot set the interpreter to babel-node, because it's a cmd file and that causes most debuggers to get confused.
+This config works on all debuggers:
+
+- Click Run/Edit Configurations..
+- Set NodeParameters: `node_modules/@babel/node/bin/babel-node.js --ignore nothing --`
+- Optionally set Application parameters: `-t <your test name`
 
 ### [Changelog](./CHANGELOG.md)
 
