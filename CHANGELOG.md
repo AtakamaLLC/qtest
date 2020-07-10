@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.5]:
+ ### Changed
+   - missing find-up package
+
 ## [1.6.4]:
  ### Changed
    - trackAsync output is better
